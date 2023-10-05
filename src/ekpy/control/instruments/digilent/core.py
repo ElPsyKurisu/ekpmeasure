@@ -5,14 +5,20 @@ import numpy as np
 from .. import misc
 from ....utils import get_number_and_suffix
 
-__all__ = ('function', 'config_channels_in', 'config_channels_out', 'config_device')
+__all__ = ('function', 'v_in', 'v_out', 'config_device')
 
 def function():
     #do something
     return
 
-def config_channels_in():
+def v_in():
     return
+
+def v_out(board_num, channel, ul_range, data_value, options=0):
+    '''
+    Wrapper for UL.v_out
+    '''
+    ul.v_out(board_num, channel, ul_range, data_value, options)
 
 
 '''
@@ -20,6 +26,9 @@ Current goal is to simply be able to configure the device and then sent a variab
 want this to be constantly on, then turn it off whenever i want
 okay after reading the UL library i dont need half of this stuff lmao. I can call functions
 directly like ul.vout(params)
+
+aka first step is config device, then pass in what you want to do aka vout or whatever
+
 '''
 
 def config_device(use_device_detection=True, dev_id_list=[],
