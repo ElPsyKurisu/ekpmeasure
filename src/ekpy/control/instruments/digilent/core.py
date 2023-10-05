@@ -5,7 +5,7 @@ import numpy as np
 from .. import misc
 from ....utils import get_number_and_suffix
 
-__all__ = ('function', 'config_channels_in', 'config_channels_out')
+__all__ = ('function', 'config_channels_in', 'config_channels_out', 'config_device')
 
 def function():
     #do something
@@ -15,10 +15,22 @@ def config_channels_in():
     return
 
 
-def config_channels_out(use_device_detection=True, dev_id_list=[],
+'''
+Current goal is to simply be able to configure the device and then sent a variable voltage out.
+want this to be constantly on, then turn it off whenever i want
+okay after reading the UL library i dont need half of this stuff lmao. I can call functions
+directly like ul.vout(params)
+'''
+
+def config_device(use_device_detection=True, dev_id_list=[],
                          board_num=0):
     '''
-    Configures which channels will be active for output
+    Configures the device and returns the accepted params from the device
+    Returns:
+    list: list of channels
+    int: num of channels
+
+
     '''   
     # By default, the example detects and displays all available devices and
     # selects the first device listed. Use the dev_id_list variable to filter
@@ -40,14 +52,20 @@ def config_channels_out(use_device_detection=True, dev_id_list=[],
 
         ao_info = daq_dev_info.get_ao_info()
         ao_range = ao_info.supported_ranges[0]
-    
+        low_chan = 0
+        high_chan = min(3, ao_info.num_chans - 1)
+        num_chans = high_chan - low_chan + 1
+
     except Exception as e:
         print('\n', e)
     finally:
         if use_device_detection:
             ul.release_daq_device(board_num)
+    return ao_range, num_chans
 
-
+'''
+Helper Functions taken directly from mcculw examples library
+'''
 
 def config_first_detected_device(board_num, dev_id_list=None):
     """Adds the first available device to the UL.  If a types_list is specified,
@@ -83,5 +101,34 @@ def config_first_detected_device(board_num, dev_id_list=None):
 
     # Add the first DAQ device to the UL with the specified board number
     ul.create_daq_device(board_num, device)
+
+
+def add_example_data(board_num, data_array, ao_range, num_chans, rate,
+                     points_per_channel):
+    # Calculate frequencies that will work well with the size of the array
+    frequencies = []
+    for channel_num in range(num_chans):
+        frequencies.append(
+            (channel_num + 1) / (points_per_channel / rate) * 10)
+
+    # Calculate an amplitude and y-offset for the signal
+    # to fill the analog output range
+    amplitude = (ao_range.range_max - ao_range.range_min) / 2
+    y_offset = (amplitude + ao_range.range_min) / 2
+
+    # Fill the array with sine wave data at the calculated frequencies.
+    # Note that since we are using the SCALEDATA option, the values
+    # added to data_array are the actual voltage values that the device
+    # will output
+    data_index = 0
+    for point_num in range(points_per_channel):
+        for channel_num in range(num_chans):
+            freq = frequencies[channel_num]
+            value = amplitude * np.sin(2 * np.pi * freq * point_num / rate) + y_offset
+            raw_value = ul.from_eng_units(board_num, ao_range, value)
+            data_array[data_index] = raw_value
+            data_index += 1
+
+    return frequencies
 
 
