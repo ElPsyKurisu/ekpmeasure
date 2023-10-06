@@ -5,7 +5,7 @@ import numpy as np
 from .. import misc
 from ....utils import get_number_and_suffix
 
-__all__ = ('function', 'v_in', 'v_out', 'config_device')
+__all__ = ('function', 'v_in', 'v_out', 'config_device', 'release_device')
 
 def function():
     #do something
@@ -20,6 +20,11 @@ def v_out(board_num, channel, ul_range, data_value, options=0):
     '''
     ul.v_out(board_num, channel, ul_range, data_value, options)
 
+def release_device(board_num):
+    '''
+    Wrapper for ul.release_daq_device
+    '''
+    ul.release_daq_device(board_num)
 
 '''
 Current goal is to simply be able to configure the device and then sent a variable voltage out.
@@ -67,9 +72,6 @@ def config_device(use_device_detection=True, dev_id_list=[],
 
     except Exception as e:
         print('\n', e)
-    finally:
-        if use_device_detection:
-            ul.release_daq_device(board_num)
     return ao_range, num_chans
 
 '''
