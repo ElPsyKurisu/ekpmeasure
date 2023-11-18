@@ -54,6 +54,12 @@ or to upgrade to the latest version
 pip install -U ekpy
 ```
 
+To manually install from zip file simply download the zip from this page, cd into the directory containing a list of files including "setup.py" and
+
+```bash
+pip install .
+```
+
 You can also access `.whl` or `.tar.gz` files in the `dist/` directory directly for installation. 
 
 For installation issues, please see [Issue Tracker](https://github.com/eparsonnet93/ekpmeasure/issues)
