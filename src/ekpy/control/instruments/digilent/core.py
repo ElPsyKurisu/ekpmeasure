@@ -1,9 +1,10 @@
-from mcculw import ul
-from mcculw.enums import InterfaceType
-from mcculw.device_info import DaqDeviceInfo
+try:
+    from mcculw import ul
+    from mcculw.enums import InterfaceType
+    from mcculw.device_info import DaqDeviceInfo
+except FileNotFoundError:
+    raise FileNotFoundError('Please check the readme file and install the required dependencies')
 import numpy as np
-from .. import misc
-from ....utils import get_number_and_suffix
 
 __all__ = ('v_in', 'v_out', 'config_device', 'release_device')
 
