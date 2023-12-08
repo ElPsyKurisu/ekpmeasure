@@ -4,7 +4,7 @@ This is for the KEYSIGHT DSOX3024a Oscilloscope and requires the KEYSIGHT I/O Li
 '''
 import numpy as np
 
-__all__ = ('idn', 'reset','setup','acquire',)
+__all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', )
 
 def idn(scope):
     return scope.query("*idn?")
@@ -83,10 +83,11 @@ def configure_timebase(scope, time_base_type: str='MAIN', position: str='0.0',
     else:
         scope.write("TIMe:REFC OFF")
 
-def setup_voltage_measurement(scope, channel: str='1', scale_mode=True, vertical_scale: str='5', vertical_range: str='40',
+def configure_channel(scope, channel: str='1', scale_mode=True, vertical_scale: str='5', vertical_range: str='40',
                               vertical_offset: str='0.0', coupling: str='DC', probe_attenuation: str='1.0', 
                               impedance: str='ONEM', enable_channel=True):
-    """Sets up the voltage measurement on the desired channel with the desired paramaters.
+    """Sets up the voltage measurement on the desired channel with the desired paramaters. Taken from
+    LabVIEW. 
 
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
@@ -113,7 +114,65 @@ def setup_voltage_measurement(scope, channel: str='1', scale_mode=True, vertical
     else:
         scope.write("CHANel{}:DISP OFF".format(channel))
 
-    return
+def configure_scale(scope, channel: str='1', time_scale: str='0.0001', vertical_scale: str='5'):
+    """Configures both the time scale and the vertical axis scale. Taken from
+    LabVIEW. 'Scales the time (horizontal) and vertical axes for the selected analog channel.'
+
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        channel (str): Desired channel allowed values are 1,2,3,4
+        time_scale (str): In units of sec/div
+        vertical scale (str): in units of volts/div
+    """
+    scope.write("TIMebase:SCALe {}".format(time_scale))
+    scope.write("CHANnel{}:SCALe {}".format(vertical_scale))
+
+def configure_trigger_characteristics(scope, type: str='EDGE', holdoff_time: str='4E-8', low_voltage_level: str='1',
+                                      high_voltage_level: str='1', trigger_source: str='CHAN1', sweep: str='AUTO',
+                                       enable_high_freq_filter=False, enable_noise_filter=False):
+    """Configures the trigger characteristics Taken from LabVIEW. 'Configures the basic settings of the trigger.'
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        type (str): Trigger type, accepted params are: [EDGE (Edge), GLIT (Glitch), PATT (Pattern), TV (TV), EBUR (Edge Burst), RUNT (Runt), NFC (Setup Hold), TRAN (Transition), SBUS1 (Serial Bus 1), SBUS2 (Serial Bus 2), USB (USB), DEL (Delay), OR (OR), NFC (Near Field Communication)]
+        holdoff_time (str): Additional Delay in units of sec before re-arming trigger circuit
+        low_voltage_level (str): The low trigger voltage level units of volts
+        high_voltage_level (str): The high trigger voltage level units of volts
+        trigger_source (str): Desired channel to trigger on allowed values are [CHAN1,CHAN2,CHAN3,CHAN4, EXT (there are more)]
+        sweep (str): Allowed values are [AUTO (automatic), NORM (Normal)]
+        enable_high_freq_filter (boolean): Toggles the high frequency filter
+        enable_noise_filter (boolean): Toggles the noise filter
+    """
+    if enable_high_freq_filter:
+        scope.write(":TRIG:HFR ON")
+    else:
+        scope.write(":TRIG:HFR OFF")
+    scope.write(":TRIG:HOLD {}".format(holdoff_time))
+    scope.write(":TRIG:LEV:HIGH {}, CHAN{}".format(high_voltage_level, trigger_source))
+    scope.write(":TRIG:LEV:LOW {}, CHAN{}".format(low_voltage_level, trigger_source))
+    scope.write(":TRIG:MODE {}".format(type))
+    if enable_noise_filter:
+        scope.write(":TRIG:NREJ ON")
+    else:
+        scope.write(":TRIG:NREJ OFF")
+    scope.write(":TRIG:SWE {}".format(sweep))
+
+def configure_trigger_edge(scope, trigger_source: str='CHAN1', input_coupling: str='AC', edge_slope: str='POS', 
+                           level: str='0', filter_type: str='OFF'):
+    """Configures the trigger characteristics Taken from LabVIEW. 'Configures the basic settings of the trigger.'
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        trigger_source (str): Desired channel/source to trigger on allowed values are: [CHAN1,CHAN2,CHAN3,CHAN4,DIG0,DIG1 (there are more)]
+        input_coupling (str): Allowed values = [AC, DC, LFR (Low Frequency Coupling)]
+        edge_slope (str): Allowed values = [POS, NEG, EITH (either), ALT (alternate)]
+        level (str): Trigger level in volts
+        filter_type (str): Allowed values = [OFF, LFR (High-pass filter), HFR (Low-pass filter)] Note: Low Frequency reject == High-pass
+    """
+    scope.write(":TRIG:SOUR {}".format(trigger_source))
+    scope.write(":TRIG:COUP {}".format(input_coupling))
+    scope.write(":TRIG:LEV {}".format(level))
+    scope.write(":TRIG:REJ {}".format(filter_type))
+    scope.write(":TRIG:SLOP {}".format(edge_slope))
+
 
 '''
 end of labview copying
