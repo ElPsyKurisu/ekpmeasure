@@ -4,7 +4,8 @@ This is for the KEYSIGHT DSOX3024a Oscilloscope and requires the KEYSIGHT I/O Li
 '''
 import numpy as np
 
-__all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', )
+__all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', 'configure_scale', 
+           'configure_trigger_characteristics', 'configure_trigger_edge',)
 
 def idn(scope):
     return scope.query("*idn?")
