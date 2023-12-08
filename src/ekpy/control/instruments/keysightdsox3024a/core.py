@@ -113,13 +113,6 @@ def setup_voltage_measurement(scope, channel: str='1', scale_mode=True, vertical
     else:
         scope.write("CHANel{}:DISP OFF".format(channel))
 
-        
-
-
-    
-
-
-
     return
 
 '''
