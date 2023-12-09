@@ -3,6 +3,7 @@ This is for the KEYSIGHT 81150A Arbitrary Pulse Generator and requires the KEYSI
 '''
 import numpy as np
 from typing import Union
+import struct
 
 __all__ = ('idn', 'reset', 'initialize', )
 
@@ -65,10 +66,16 @@ def configure_trigger(wavegen, channel: str='1', source: str='IMM', mode: str='E
     wavegen.write(":ARM:SENS{} {}".format(channel, mode))
     wavegen.write(":ARM:SLOP {}".format(slope))
 
-def create_arbitrary_waveform(wavegen, data, name: str='ARB1',):
+def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='ARB1'):
     """
     This program creates an arbitrary waveform within the limitations of the
-    Keysight 81150A which has a limit of 2 - 524288 data points.
+    Keysight 81150A which has a limit of 2 - 524288 data points. In order to send data
+    in accordance with the 488.2 block format which looks like #ABC, where '#' marks the start
+    of the data flow and 'A' refers to the number of digits in the byte count, 'B' refers to the
+    byte count and 'C' refers to the actual data in binary. The data is first scaled between
+    -8191 to 8191 in accordance to our instrument.
+
+
     args:
         wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
         channel (str): Desired Channel to configure accepted params are [1,2]
@@ -77,7 +84,19 @@ def create_arbitrary_waveform(wavegen, data, name: str='ARB1',):
         slope (str): The slope of triggering allowed args = [POS (positive), NEG (negative), EIT (either)]
     """  
     #will want to include error handling in this one.
-
+    data = np.array(data)
+    scaled_data = scale_waveform_data(data)
+    scaled_data = scaled_data.astype(np.int16)
+    size_of_data = str(2*len(scaled_data)) #multiply by 2 to account for negative values?
+    #want to send stuff accoprding to format whcih is #ABC
+    a = len(size_of_data.encode('utf-8')) 
+    b = size_of_data
+    #c is the binary data to be passed
+    c = scaled_data.tobytes()
+    #i think im done?
+    wavegen.write(":FORM:BORD NORM")
+    wavegen.write(":DATA:DAC VOLATILE, #{}{}{}".format(a,b,c))
+    wavegen.write(":DATA:COPY {}, VOLATILE".format(name))
 
 #https://github.com/jeremyherbert/barbutils/blob/master/barbutils.py
 #upper frequnecy range is 120MHZ so do not go above that
@@ -105,12 +124,15 @@ def configure_arb_waveform(wavegen, channel: str='1', name='ARB1', gain: str='1.
 Helper functions:
 '''
 
-def scale_waveform_data(data: Union[np.array, list]) -> np.array:
+def scale_waveform_data(data: np.array) -> np.array:
     '''
     Scales the data between -1 and 1 then multiplies by instrument specific
     scaling factor (8191 for ours)
     '''
-    data = np.array(data)
     normalized = 2*(data - np.min(data))/np.ptp(data) - 1
     return normalized * 8191
 
+size_of_data = str(16)
+#want to send stuff accoprding to format whcih is #ABC
+a = len(size_of_data.encode('utf-8'))
+print(a)
