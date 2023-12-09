@@ -73,7 +73,8 @@ def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='A
     in accordance with the 488.2 block format which looks like #ABC, where '#' marks the start
     of the data flow and 'A' refers to the number of digits in the byte count, 'B' refers to the
     byte count and 'C' refers to the actual data in binary. The data is first scaled between
-    -8191 to 8191 in accordance to our instrument.
+    -8191 to 8191 in accordance to our instrument. Adapted from LabVIEW (note their arrays
+    contain 10,000 elements).
 
 
     args:
