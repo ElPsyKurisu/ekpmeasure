@@ -5,7 +5,8 @@ import numpy as np
 from typing import Union
 import struct
 
-__all__ = ('idn', 'reset', 'initialize', )
+__all__ = ('idn', 'reset', 'initialize', 'configure_impedance', 'configure_output_amplifier', 'configure_trigger',
+            'create_arbitrary_waveform', 'configure_arb_waveform', 'enable_output',)
 
 def idn(wavegen):
     return wavegen.query("*idn?")
@@ -74,8 +75,9 @@ def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='A
     of the data flow and 'A' refers to the number of digits in the byte count, 'B' refers to the
     byte count and 'C' refers to the actual data in binary. The data is first scaled between
     -8191 to 8191 in accordance to our instrument. Adapted from LabVIEW (note their arrays
-    contain 10,000 elements).
-
+    contain 10,000 elements). 
+    Note: Will NOT save waveform in non-volatile memory if all the user available slots are
+    filled (There are 4 allowed at 1 time plus 1 in volatile memory).
 
     args:
         wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
@@ -119,6 +121,19 @@ def configure_arb_waveform(wavegen, channel: str='1', name='ARB1', gain: str='1.
     wavegen.write(":VOLT{} {}".format(channel, gain))
     wavegen.write(":FREQ{} {}".format(channel, freq))
     wavegen.write(":VOLT{}:OFFS {}".format(channel, offset))  
+
+def enable_output(wavegen, channel: str='1', on=True):
+    """
+    This program enables the selected output. Taken from LabVIEW. 
+    args:
+        wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
+        channel (str): Desired Channel to configure accepted params are [1,2]
+        on (boolean): True for on, False for off
+    """
+    if on:
+        wavegen.write(":OUTP{} ON".format(channel))
+    else:
+        wavegen.write(":OUTP{} OFF".format(channel))
 
 
 '''
