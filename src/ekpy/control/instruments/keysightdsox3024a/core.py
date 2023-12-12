@@ -1,6 +1,6 @@
 
 '''
-This is for the KEYSIGHT DSOX3024a Oscilloscope and requires the KEYSIGHT I/O Libraries to function
+This is for the KEYSIGHT DSOX3024a Oscilloscope and requires the KEYSIGHT I/O Libraries to function.
 '''
 import numpy as np
 
@@ -173,6 +173,19 @@ def configure_trigger_edge(scope, trigger_source: str='CHAN1', input_coupling: s
     scope.write(":TRIG:LEV {}".format(level))
     scope.write(":TRIG:REJ {}".format(filter_type))
     scope.write(":TRIG:SLOP {}".format(edge_slope))
+
+def wait_for_acq_complete(scope):
+    """
+    Ensures that the acquisition of data is complete. Taken from LabVIEW. 'Waits for the current waveform acquisition to finish,
+    This VI should be called after initiate and before fetch waveform'. Honestly, seems antiquated and seems simpler to use
+    *OPC? or *WAI
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+    """
+    scope.write("*CLS")
+    scope.write("*OPC")
+    
+
 
 
 '''
