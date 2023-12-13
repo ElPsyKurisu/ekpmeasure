@@ -135,6 +135,14 @@ def enable_output(wavegen, channel: str='1', on=True):
     else:
         wavegen.write(":OUTP{} OFF".format(channel))
 
+def send_software_trigger(wavegen):
+    """
+    This program sends the software trigger. Taken from LabVIEW. 
+    args:
+        wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
+    """
+    wavegen.write(":TRIG")
+
 
 '''
 Helper functions:

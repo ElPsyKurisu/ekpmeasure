@@ -3,6 +3,7 @@
 This is for the KEYSIGHT DSOX3024a Oscilloscope and requires the KEYSIGHT I/O Libraries to function.
 '''
 import numpy as np
+import time
 
 __all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', 'configure_scale', 
            'configure_trigger_characteristics', 'configure_trigger_edge',)
@@ -184,7 +185,20 @@ def wait_for_acq_complete(scope):
     """
     scope.write("*CLS")
     scope.write("*OPC")
-    
+    loop_count = 0
+    while True:
+        if loop_count > 10:
+            print("Timed Out")
+            break
+        scope.write("*STB?")
+        status = int(scope.read())
+        binary = bin(status)[7] #checks of the index 5 bit is a 1 since bin goes like 0bxxxx
+        if binary is '1':
+            break
+        loop_count += 1
+        time.sleep(.01)
+        
+
 
 
 
