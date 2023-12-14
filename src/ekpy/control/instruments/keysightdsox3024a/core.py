@@ -261,12 +261,12 @@ def setup_acquire(scope, complete=None, count=None, mode=None, averages=None, ty
     if type is not None:
         scope.write(":ACQuire:TYPE {}".format(type))
 
-def setup_wf(scope, source: str='1', byte_order: str='MSBF', format: str='byte', points: str='1000', 
+def setup_wf(scope, source: str='CHAN1', byte_order: str='MSBF', format: str='byte', points: str='1000', 
              points_mode: str='NORMal', unsigned: str='OFF'):
-    """Returns the specified channels waveform with averaging or not and of a specified format/count  
+    """Sets up the waveform with averaging or not and of a specified format/count  
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
-        channel (str): Desired channel allowed values are [CHAN1, CHAN2, CHAN3, CHAN4, FUNC, SBUS1, etc]
+        source (str): Desired channel allowed values are [CHAN1, CHAN2, CHAN3, CHAN4, FUNC, SBUS1, etc]
         byte_order (str): Either MSBF (most significant byte first) or LSBF (least significant byte first)
         format (str): Format of data allowed args are [ASCii (floating point), WORD (16bit two-bytes), BYTE (8-bit)]
         points (str): Number of data points for the waveform to return allowed args are [100,250,500,1000]

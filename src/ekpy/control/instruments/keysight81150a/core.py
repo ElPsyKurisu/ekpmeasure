@@ -6,7 +6,7 @@ from typing import Union
 import struct
 
 __all__ = ('idn', 'reset', 'initialize', 'configure_impedance', 'configure_output_amplifier', 'configure_trigger',
-            'create_arbitrary_waveform', 'configure_arb_waveform', 'enable_output',)
+            'create_arbitrary_waveform', 'configure_arb_waveform', 'enable_output', 'send_software_trigger', 'stop',)
 
 def idn(wavegen):
     return wavegen.query("*idn?")
@@ -30,18 +30,19 @@ def initialize(wavegen):
     wavegen.write("*RST")
     wavegen.write("*CLS")
 
-def configure_impedance(wavegen, channel: str='1', output_impedance: str='50.0', input_impedance: str='50.0'):
+def configure_impedance(wavegen, channel: str='1', source_impedance: str='50.0', load_impedance: str='50.0'):
     """
     This program configures the output and input impedance of the wavegen. Taken from LabVIEW.
     args:
         wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
         channel (str): Desired Channel to configure accepted params are [1,2]
-        output_impedance (str): The desired output impedance in units of Ohms
-        input_impedance (str): The desired input impedance in units of Ohms
+        source_impedance (str): The desired source impedance in units of Ohms, allowed args are [5, 50]
+        load_impedance (str): The desired load impedance in units of Ohms, allowed args are [0.3 to 1E6]
 
     """
-    wavegen.write(":OUTP{}:IMP:EXT {}".format(channel, input_impedance))
-    wavegen.write(":OUTP{}:IMP {}".format(channel, output_impedance))
+    wavegen.write(":OUTP{}:IMP {}".format(channel, source_impedance))
+    #wavegen.write(":OUTP{}:LOAD {}".format(channel, input_impedance)) Also valid for below
+    wavegen.write(":OUTP{}:IMP:EXT {}".format(channel, load_impedance))
 
 def configure_output_amplifier(wavegen, channel: str='1', type: str='HIV'):
     """
