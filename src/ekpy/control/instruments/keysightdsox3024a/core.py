@@ -6,7 +6,8 @@ import numpy as np
 import time
 
 __all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', 'configure_scale', 
-           'configure_trigger_characteristics', 'configure_trigger_edge',)
+           'configure_trigger_characteristics', 'configure_trigger_edge', 'wait_for_acq_complete', 'error_query',
+             'setup_acquire', 'setup_wf', 'query_wf', 'query_wf_settings', 'query_increments',)
 
 def idn(scope):
     return scope.query("*idn?")
@@ -175,17 +176,18 @@ def configure_trigger_edge(scope, trigger_source: str='CHAN1', input_coupling: s
     scope.write(":TRIG:REJ {}".format(filter_type))
     scope.write(":TRIG:SLOP {}".format(edge_slope))
 
-def wait_for_acq_complete(scope):
+def wait_for_acq_complete(scope, timeout=100):
     """
     Ensures that the acquisition of data is complete. Taken from LabVIEW. 'Waits for the current waveform acquisition to finish,
     This VI should be called after initiate and before fetch waveform'. Honestly, seems antiquated and seems simpler to use
     *OPC? or *WAI Note in programming guide it says just use *OPC?
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        timeout (int): In units of 0.01 seconds
     """
     scope.write("*CLS")
     scope.write("*OPC")
-    loop_count = 0
+    loop_count = timeout
     while True:
         if loop_count > 10:
             print("Timed Out")

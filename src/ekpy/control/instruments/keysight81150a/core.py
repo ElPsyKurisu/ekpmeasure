@@ -143,6 +143,15 @@ def send_software_trigger(wavegen):
     """
     wavegen.write(":TRIG")
 
+def stop(wavegen):
+    """Stop the scope.
+
+	args:
+		wavegen (pyvisa.resources.ENET-Serial INSTR): Keysight 81150A
+	"""
+    enable_output(wavegen, '1', False)
+    enable_output(wavegen, '2', False)
+
 
 '''
 Helper functions:
