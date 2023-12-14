@@ -198,13 +198,64 @@ def wait_for_acq_complete(scope):
         loop_count += 1
         time.sleep(.01)
         
+def error_query(scope):
+    """Queries the instrument for any errors. Taken from LabVIEW. 
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+    returns:
+        tuple with the first element being the error code, and the next element the error message
+    """ 
+    output = scope.query(":SYST:ERR?")
+    number, message = output.split(',')
+    message = message.strip()
+    return number, message
 
-
-
+def fetch_waveform(scope, channel: str='1', type: str='NORMal', bind_source_channel: str='None', format: str='ASCii', count: str='10000', timeout: str='1'):
+    """Returns the specified channels waveform. Taken from LabVIEW but edited to work better in python (diff functions).
+    'Data encoding method was changed to WORD/U16 in driver REV 1.3.1. This would increase precision. If you want the previous behavior before REV 1.3.1 (using BYTE/U8), 
+    please change the command ':WAV:FORM WORD' to ':WAV:FORM BYTE' in the Data encoding string in both the Default case and the 0..3, 13..28 case. 
+    Another change that must be made is about the type input of the Type Cast function downstream.'
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        channel (str): Desired channel allowed values are 1,2,3,4
+        type (str): Allowed values are 'NORMal', 'AVERage', 'PEAK', and 'HRESolution' [high resolution]
+        bind_source_channel (str): Allows for displaying sub-channels allowed args are [None, SUB0, SUB1]
+        format (str): The format to return the data in when queried. Example args are [ASCii, WORD (U16)]
+        timeout (str) Length in seconds to timeout for
+    returns:
+        data ()
+    """ 
+    scope.write(":WAV:SOUR CHAN{}".format(channel))
+    if bind_source_channel == 'SUB0' or bind_source_channel == 'SUB1': #to ensure nothing else is passed
+        scope.write(":WAV:SOUR:SUB{}".format(bind_source_channel))
+    scope.write(":ACQuire:TYPE {}".format(type))
+    scope.write(":WAVeform:FORMat {}".format(format))
+    scope.write(":WAV:BYT MSBF;:WAV:FORM WORD;") #sets encoding to U16 for higher resolution
+    scope.write(":WAV:XOR?;:WAV:XINC?;:WAV:XREF?;:WAV:YOR?;:WAV:YINC?;:WAV:YREF?;")
 
 '''
 end of labview copying
 '''
+
+def query_wf_settings(scope):
+    """Asks the scope for the current waveform settings:
+    FORMAT        : int16 - 0 = BYTE, 1 = WORD, 4 = ASCII.
+%    TYPE          : int16 - 0 = NORMAL, 1 = PEAK DETECT, 2 = AVERAGE
+%    POINTS        : int32 - number of data points transferred.
+%    COUNT         : int32 - 1 and is always 1.
+%    XINCREMENT    : float64 - time difference between data points.
+%    XORIGIN       : float64 - always the first data point in memory.
+%    XREFERENCE    : int32 - specifies the data point associated with
+%                            x-origin.
+%    YINCREMENT    : float32 - voltage diff between data points.
+%    YORIGIN       : float32 - value is the voltage at center screen.
+%    YREFERENCE    : int32 - specifies the data point where y-origin
+%                            occurs. 
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+    returns:
+        """
+    return scope.query(":WAVEFORM:PREAMBLE?")
 
 
 def acquire(scope, channel: str='1', type: str='NORMal', complete: str='100', count: str='10',
