@@ -179,7 +179,7 @@ def wait_for_acq_complete(scope):
     """
     Ensures that the acquisition of data is complete. Taken from LabVIEW. 'Waits for the current waveform acquisition to finish,
     This VI should be called after initiate and before fetch waveform'. Honestly, seems antiquated and seems simpler to use
-    *OPC? or *WAI
+    *OPC? or *WAI Note in programming guide it says just use *OPC?
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
     """
@@ -237,26 +237,157 @@ def fetch_waveform(scope, channel: str='1', type: str='NORMal', bind_source_chan
 end of labview copying
 '''
 
+def setup_acquire(scope, complete=None, count=None, mode=None, averages=None, type=None):
+    """Returns the specified channels waveform with averaging or not and of a specified format/count  
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        complete (str): Determines the number of time buckets that must be "full" before aquisition is considered complete.
+        count (str): In avereging mode, count specifies number of values to be averaged before aqusition is considered complete.
+                    Note that it ranges from [2 to 65536] but if you use count='1' its the same as type='HRES'
+        averages (str): Sets the number of averages for the waveforms [2,4,8,16,32,64,128,256] $not mentioned in 3000 guide
+        mode (str): Sets in real time or equivalent time [RTIMe, ETIMe]
+        type (str): Allowed values are 'NORMal', 'AVERage', 'PEAK', and 'HRESolution' [high resolution]
+    """ 
+    if complete is not None:
+        scope.write(":ACQuire:COMPlete {}".format(complete))
+    if count is not None:
+        scope.write(":ACQuire:COUNt {}".format(count))
+    if mode is not None:
+        scope.write(":ACQuire:MODE {}".format(mode))
+    if averages is not None:
+        scope.write(":ACQuire:AVERages {}".format(averages))
+    if type is not None:
+        scope.write(":ACQuire:TYPE {}".format(type))
+
+def setup_wf(scope, source: str='1', byte_order: str='MSBF', format: str='byte', points: str='1000', 
+             points_mode: str='NORMal', unsigned: str='OFF'):
+    """Returns the specified channels waveform with averaging or not and of a specified format/count  
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        channel (str): Desired channel allowed values are [CHAN1, CHAN2, CHAN3, CHAN4, FUNC, SBUS1, etc]
+        byte_order (str): Either MSBF (most significant byte first) or LSBF (least significant byte first)
+        format (str): Format of data allowed args are [ASCii (floating point), WORD (16bit two-bytes), BYTE (8-bit)]
+        points (str): Number of data points for the waveform to return allowed args are [100,250,500,1000]
+        points_mode (str): Mode for points allowed args are [NORM (normal), MAX (maximum), RAW]
+        unsigned (str): Allows to switch between unsigned and signed integers [OFF (signed), ON (unsigned)]
+    """ 
+    scope.write(":WAVeform:SOURce {}".format(source))
+    scope.write(":WAVeform:BYTeorder {}".format(byte_order))
+    scope.write(":WAVeform:FORMat {}".format(format))
+    scope.write(":WAVeform:POINts {}".format(points))
+    scope.write(":WAVeform:POINts:MODE {}".format(points_mode))
+    scope.write(":WAVeform:UNSigned {}".format(unsigned))
+
+
+def query_wf(scope, byte_order: str='MSBF', unsigned: str='OFF'):
+    """Returns the specified channels waveform with averaging or not and of a specified format/count, call
+    setup_wf first to intialize it correctly. This function only calls queries. First calls preamble to get
+    data format. Then parses data and converts data to usable format.
+    GET_PREAMBLE - The preamble block contains all of the current
+    ' WAVEFORM settings. It is returned in the form <preamble_block><NL>
+    ' where <preamble_block> is:
+    ' FORMAT : int16-0= BYTE, 1 = WORD, 4 = ASCII.
+    ' TYPE : int16-0= NORMAL, 1 = PEAK DETECT, 2 = AVERAGE
+    ' POINTS : int32 - number of data points transferred.
+    ' COUNT : int32 - 1 and is always 1.
+    ' XINCREMENT : float64 - time difference between data points.
+    ' XORIGIN : float64 - always the first data point in memory.
+    ' XREFERENCE : int32 - specifies the data point associated with
+    ' x-origin.
+    ' YINCREMENT : float32 - voltage diff between data points.
+    ' YORIGIN : float32 - value is the voltage at center screen.
+    ' YREFERENCE : int32 - specifies the data point where y-origin
+    ' occurs 
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+        byte_order (str): Either MSBF (most significant byte first) or LSBF (least significant byte first)
+        unsigned (str): Allows to switch between unsigned and signed integers [OFF (signed), ON (unsigned)]
+
+    returns:
+        preamble_dict (dict) Dictionary with all params labeled. (MetaData)
+        time (list): Python list with all the scaled time (x_data array)
+        wfm (list): Python list with all the scaled y_values (y_data array) 
+    """ 
+    preamble = scope.query(":WAVeform:PREamble?")
+    preamble_list = preamble.split()
+    preamble_dict = {
+    'format': np.int16(preamble_list[0]),
+    'type': np.int16(preamble_list[1]),
+    'points': np.int32(preamble_list[2]),
+    'count': np.int32(preamble_list[3]),
+    'x_increment': np.float64(preamble_list[4]),
+    'x_origin': np.float64(preamble_list[5]),
+    'x_reference': np.int32(preamble_list[6]),
+    'y_increment': np.float32(preamble_list[7]),
+    'y_origin': np.float32(preamble_list[8]),
+    'y_reference': np.int32(preamble_list[9]),
+    }
+    if byte_order == 'MSBF':
+        is_big_endian = True
+    if byte_order == 'LSBF':
+        is_big_endian = False
+    if unsigned == 'OFF':
+        is_unsigned = False
+    if unsigned == 'ON':
+        is_unsigned = True
+    if preamble_dict["type"] == 0 and not is_unsigned:
+        data = scope.query_binary_values("WAVeform:DATA?", datatype='b', is_big_endian=is_big_endian)
+    if preamble_dict["type"] == 0 and is_unsigned:
+        data = scope.query_binary_values("WAVeform:DATA?", datatype='B', is_big_endian=is_big_endian)
+    if preamble_dict["type"] == 1 and is_unsigned:
+        data = scope.query_binary_values("WAVeform:DATA?", datatype='h', is_big_endian=is_big_endian)
+    if preamble_dict["type"] == 1 and is_unsigned:
+        data = scope.query_binary_values("WAVeform:DATA?", datatype='H', is_big_endian=is_big_endian)
+    if preamble_dict["type"] == 4:
+        data = scope.query_ascii_values("WAVeform:DATA?")
+    time = []
+    wfm = []
+    for t in range(preamble_dict["points"]):
+        time.append((t* preamble_dict["x_increment"]) + preamble_dict["x_origin"])
+    for d in data:
+        wfm.append((d * preamble_dict["y_increment"]) + preamble_dict["y_origin"])
+    return preamble_dict, time, wfm
+
+    
+
+
 def query_wf_settings(scope):
-    """Asks the scope for the current waveform settings:
-    FORMAT        : int16 - 0 = BYTE, 1 = WORD, 4 = ASCII.
-%    TYPE          : int16 - 0 = NORMAL, 1 = PEAK DETECT, 2 = AVERAGE
-%    POINTS        : int32 - number of data points transferred.
-%    COUNT         : int32 - 1 and is always 1.
-%    XINCREMENT    : float64 - time difference between data points.
-%    XORIGIN       : float64 - always the first data point in memory.
-%    XREFERENCE    : int32 - specifies the data point associated with
-%                            x-origin.
-%    YINCREMENT    : float32 - voltage diff between data points.
-%    YORIGIN       : float32 - value is the voltage at center screen.
-%    YREFERENCE    : int32 - specifies the data point where y-origin
-%                            occurs. 
+    """
+    Asks the scope for the current waveform settings, response taken from example matlab code
+    may be innaccurate since original matlab code said 2 for ASCII but its 4:
+    FORMAT: int16 - 0 = BYTE, 1 = WORD, 4 = ASCII.
+    TYPE: int16 - 0 = NORMAL, 1 = PEAK DETECT, 2 = AVERAGE
+    POINTS: int32 - number of data points transferred.
+    COUNT: int32 - 1 and is always 1.
+    XINCREMENT: float64 - time difference between data points.
+    XORIGIN: float64 - always the first data point in memory.
+    XREFERENCE: int32 - specifies the data point associated with
+    x-origin.
+    YINCREMENT: float32 - voltage diff between data points.
+    YORIGIN: float32 - value is the voltage at center screen.
+    YREFERENCE: int32 - specifies the data point where y-origin
+    occurs. 
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
     returns:
-        """
+        preamble (str): See above for params"""
+
     return scope.query(":WAVEFORM:PREAMBLE?")
 
+def query_increments(scope):
+    """
+    Asks the scope what the x and y increments are of the scope, e.g. returns
+    the value between two data points: 'For time domain waveforms, this is the time 
+    difference between consecutive data points.' - from 3000 series docs.
+
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+    returns:
+        x_increment, y_increment (tuple): x is in seconds usually, y is in volts usually
+    """
+    x_increment = scope.query(":WAVeform:XINCrement?")
+    y_increment = scope.query(":WAVeform:YINCrement?")
+    return x_increment, y_increment
 
 def acquire(scope, channel: str='1', type: str='NORMal', complete: str='100', count: str='10',
             format: str='ASCii', points: str='500'):
@@ -281,6 +412,11 @@ def acquire(scope, channel: str='1', type: str='NORMal', complete: str='100', co
     data = np.array([float(d) for d in wf[:-1].split(',')])
     return data
 
+
+'''
+Note KEY commands in the programming guide are quite interesting to look at
+and allow you to program sequences of physical button presses.
+'''
 
 
 
