@@ -7,7 +7,7 @@ import time
 
 __all__ = ('idn', 'reset','setup','acquire', 'initialize', 'configure_timebase', 'configure_channel', 'configure_scale', 
            'configure_trigger_characteristics', 'configure_trigger_edge', 'wait_for_acq_complete', 'error_query',
-             'setup_acquire', 'setup_wf', 'query_wf', 'query_wf_settings', 'query_increments',)
+             'setup_acquire', 'setup_wf', 'query_wf', 'query_wf_settings', 'query_increments', 'initiate',)
 
 def idn(scope):
     return scope.query("*idn?")
@@ -128,7 +128,7 @@ def configure_scale(scope, channel: str='1', time_scale: str='0.0001', vertical_
         vertical scale (str): in units of volts/div
     """
     scope.write("TIMebase:SCALe {}".format(time_scale))
-    scope.write("CHANnel{}:SCALe {}".format(vertical_scale))
+    scope.write("CHANnel{}:SCALe {}".format(channel, vertical_scale))
 
 def configure_trigger_characteristics(scope, type: str='EDGE', holdoff_time: str='4E-8', low_voltage_level: str='1',
                                       high_voltage_level: str='1', trigger_source: str='CHAN1', sweep: str='AUTO',
@@ -187,9 +187,9 @@ def wait_for_acq_complete(scope, timeout=100):
     """
     scope.write("*CLS")
     scope.write("*OPC")
-    loop_count = timeout
+    loop_count = 0
     while True:
-        if loop_count > 10:
+        if loop_count > timeout:
             print("Timed Out")
             break
         scope.write("*STB?")
@@ -234,6 +234,17 @@ def fetch_waveform(scope, channel: str='1', type: str='NORMal', bind_source_chan
     scope.write(":WAVeform:FORMat {}".format(format))
     scope.write(":WAV:BYT MSBF;:WAV:FORM WORD;") #sets encoding to U16 for higher resolution
     scope.write(":WAV:XOR?;:WAV:XINC?;:WAV:XREF?;:WAV:YOR?;:WAV:YINC?;:WAV:YREF?;")
+
+def initiate(scope):
+    """
+    Starts the measurement and acquires the channels currently 
+    displayed. If no channels are displayed, all channels are 
+    acquired.
+
+    args:
+        scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
+    """
+    scope.write(":DIG;*CLS")
 
 '''
 end of labview copying
