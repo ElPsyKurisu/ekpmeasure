@@ -41,7 +41,7 @@ def configure_impedance(wavegen, channel: str='1', source_impedance: str='50.0',
 
     """
     wavegen.write(":OUTP{}:IMP {}".format(channel, source_impedance))
-    #wavegen.write(":OUTP{}:LOAD {}".format(channel, input_impedance)) Also valid for below
+    #wavegen.write(":OUTP{}:LOAD {}".format(channel, load_impedance)) Also valid for below
     wavegen.write(":OUTP{}:IMP:EXT {}".format(channel, load_impedance))
 
 def configure_output_amplifier(wavegen, channel: str='1', type: str='HIV'):
@@ -152,6 +152,25 @@ def stop(wavegen):
 	"""
     enable_output(wavegen, '1', False)
     enable_output(wavegen, '2', False)
+
+def set_output_wf(wavegen, channel: str='1', func='SIN', freq='1e3', duty_cycle='50'):
+    """
+    Decides what built-in wf to send - by default sin
+
+    args:
+		wavegen (pyvisa.resources.ENET-Serial INSTR): Keysight 81150A
+        channel (str): Desired Channel to configure accepted params are [1,2]
+        func (str): Desired output function, allowed args are [SIN (sine), SQU (square), RAMP, PULSe, NOISe, DC, USER (arb)]
+        freq (str): frequency in Hz (have not added suffix funcitonaility yet)
+        duty_cycle (str): duty_cycle defined as 100* pulse_width / Period ranges from 0-100, (cant actually do 0 or 100 but in between is fine)
+
+    """
+    wavegen.write(":SOUR:FUNC{}:{}".format(channel, func))
+    wavegen.write(":SOUR:FREQ{} {}".format(channel, freq))
+    if func.lower() == 'pulse' or func.lower() == 'puls':
+        wavegen.write(":SOUR:FUNC{}:PULS:DCYC {}PCT".format(channel, duty_cycle))
+
+    
 
 
 '''

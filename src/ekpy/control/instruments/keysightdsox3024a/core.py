@@ -195,7 +195,7 @@ def wait_for_acq_complete(scope, timeout=100):
         scope.write("*STB?")
         status = int(scope.read())
         binary = bin(status)[7] #checks of the index 5 bit is a 1 since bin goes like 0bxxxx
-        if binary is '1':
+        if binary == '1':
             break
         loop_count += 1
         time.sleep(.01)
@@ -311,7 +311,8 @@ def query_wf(scope, byte_order: str='MSBF', unsigned: str='OFF'):
         wfm (list): Python list with all the scaled y_values (y_data array) 
     """ 
     preamble = scope.query(":WAVeform:PREamble?")
-    preamble_list = preamble.split()
+    preamble1 = preamble.split()
+    preamble_list = preamble1[0].split(',')
     preamble_dict = {
     'format': np.int16(preamble_list[0]),
     'type': np.int16(preamble_list[1]),
@@ -332,15 +333,15 @@ def query_wf(scope, byte_order: str='MSBF', unsigned: str='OFF'):
         is_unsigned = False
     if unsigned == 'ON':
         is_unsigned = True
-    if preamble_dict["type"] == 0 and not is_unsigned:
+    if preamble_dict["format"] == 0 and not is_unsigned:
         data = scope.query_binary_values("WAVeform:DATA?", datatype='b', is_big_endian=is_big_endian)
-    if preamble_dict["type"] == 0 and is_unsigned:
+    if preamble_dict["format"] == 0 and is_unsigned:
         data = scope.query_binary_values("WAVeform:DATA?", datatype='B', is_big_endian=is_big_endian)
-    if preamble_dict["type"] == 1 and is_unsigned:
+    if preamble_dict["format"] == 1 and not is_unsigned:
         data = scope.query_binary_values("WAVeform:DATA?", datatype='h', is_big_endian=is_big_endian)
-    if preamble_dict["type"] == 1 and is_unsigned:
+    if preamble_dict["format"] == 1 and is_unsigned:
         data = scope.query_binary_values("WAVeform:DATA?", datatype='H', is_big_endian=is_big_endian)
-    if preamble_dict["type"] == 4:
+    if preamble_dict["format"] == 4:
         data = scope.query_ascii_values("WAVeform:DATA?")
     time = []
     wfm = []
