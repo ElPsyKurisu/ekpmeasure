@@ -58,33 +58,34 @@ def initialize(scope):
     scope.write("*CLS")
 
 
-def configure_timebase(scope, time_base_type: str='MAIN', position: str='0.0',
-                       range: str='0.001', reference: str='CENTer', scale: str='50', vernier=False, ref_bnc=False):
+def configure_timebase(scope, time_base_type="MAIN", position="0.0",
+                       reference="CENT", range=None, scale=None, vernier=False):
     """Configures the timebase of the oscilliscope. Adapted from LabVIEW program 'Configure Timebase (Basic)'
     Should call initialize first.
 
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
         time_base_type (str): Allowed values are 'MAIN', 'WINDow', 'XY', and 'ROLL', note must use main for data acquisition
-        position (str): The position in the scope
+        position (str): The position in the scope, [0.0] is a good default
         range (str): The x range of the scope min is 2ns, max is 50s
         scale (str): The x scale of the scope in units of s/div
         vernier (boolean): Enables Vernier scale
-        ref_bnc (boolean): Enables REF BNC
     """
-    scope.write("TIMe:MODE {}".format(time_base_type))
-    scope.write("TIMe:POS {}".format(position))
-    scope.write("TIMe:RANG {}".format(range))
-    scope.write("TIMe:REF {}".format(reference))
-    scope.write("TIMe:SCAL {}".format(scale))
+    if time_base_type is not None:
+        scope.write("TIM:MODE {}".format(time_base_type))
+    if position is not None:
+        scope.write("TIM:POS {}".format(position))
+    if range is not None:
+        scope.write("TIM:RANG {}".format(range))
+    if reference is not None:
+        scope.write("TIM:REF {}".format(reference))
+    if scale is not None:
+        scope.write("TIM:SCAL {}".format(scale))
     if vernier:
-        scope.write("TIMe:VERN ON")
+        scope.write("TIM:VERN ON")
     else:
-        scope.write("TIMe:VERN OFF")
-    if ref_bnc:
-        scope.write("TIMe:REFC ON")
-    else:
-        scope.write("TIMe:REFC OFF")
+        scope.write("TIM:VERN OFF")
+
 
 def configure_channel(scope, channel: str='1', scale_mode=True, vertical_scale: str='5', vertical_range: str='40',
                               vertical_offset: str='0.0', coupling: str='DC', probe_attenuation: str='1.0', 
@@ -105,17 +106,17 @@ def configure_channel(scope, channel: str='1', scale_mode=True, vertical_scale: 
         enable_channel (boolean): Enables the channel
     """
     if scale_mode:
-        scope.write("CHANel{}:SCAL {}".format(channel, vertical_scale))
+        scope.write("CHAN{}:SCAL {}".format(channel, vertical_scale))
     else:
-        scope.write("CHANel{}:RANG {}".format(channel, vertical_range))
-    scope.write("CHANel{}:OFFS {}".format(channel, vertical_offset))
-    scope.write("CHANel{}:COUP {}".format(channel, coupling))
-    scope.write("CHANel{}:PROB {}".format(channel, probe_attenuation))
-    scope.write("CHANel{}:IMP {}".format(channel, impedance))
+        scope.write("CHAN{}:RANG {}".format(channel, vertical_range))
+    scope.write("CHAN{}:OFFS {}".format(channel, vertical_offset))
+    scope.write("CHAN{}:COUP {}".format(channel, coupling))
+    scope.write("CHAN{}:PROB {}".format(channel, probe_attenuation))
+    scope.write("CHAN{}:IMP {}".format(channel, impedance))
     if enable_channel:
-        scope.write("CHANel{}:DISP ON".format(channel))
+        scope.write("CHAN{}:DISP ON".format(channel))
     else:
-        scope.write("CHANel{}:DISP OFF".format(channel))
+        scope.write("CHAN{}:DISP OFF".format(channel))
 
 def configure_scale(scope, channel: str='1', time_scale: str='0.0001', vertical_scale: str='5'):
     """Configures both the time scale and the vertical axis scale. Taken from
@@ -127,8 +128,8 @@ def configure_scale(scope, channel: str='1', time_scale: str='0.0001', vertical_
         time_scale (str): In units of sec/div
         vertical scale (str): in units of volts/div
     """
-    scope.write("TIMebase:SCALe {}".format(time_scale))
-    scope.write("CHANnel{}:SCALe {}".format(channel, vertical_scale))
+    #scope.write(":TIM:SCAL {}".format(time_scale)) already done before...
+    scope.write(":CHAN{}:SCAL {}V".format(channel, vertical_scale)) #added V, delete comment if works
 
 def configure_trigger_characteristics(scope, type: str='EDGE', holdoff_time: str='4E-8', low_voltage_level: str='1',
                                       high_voltage_level: str='1', trigger_source: str='CHAN1', sweep: str='AUTO',
@@ -150,8 +151,8 @@ def configure_trigger_characteristics(scope, type: str='EDGE', holdoff_time: str
     else:
         scope.write(":TRIG:HFR OFF")
     scope.write(":TRIG:HOLD {}".format(holdoff_time))
-    scope.write(":TRIG:LEV:HIGH {}, CHAN{}".format(high_voltage_level, trigger_source))
-    scope.write(":TRIG:LEV:LOW {}, CHAN{}".format(low_voltage_level, trigger_source))
+    scope.write(":TRIG:LEV:HIGH {}, {}".format(high_voltage_level, trigger_source))
+    scope.write(":TRIG:LEV:LOW {}, {}".format(low_voltage_level, trigger_source))
     scope.write(":TRIG:MODE {}".format(type))
     if enable_noise_filter:
         scope.write(":TRIG:NREJ ON")
@@ -244,7 +245,8 @@ def initiate(scope):
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
     """
-    scope.write(":DIG;*CLS")
+    scope.write(":DIG")
+    scope.write("*CLS")
 
 '''
 end of labview copying

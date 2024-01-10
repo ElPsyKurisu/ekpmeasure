@@ -6,7 +6,7 @@ from typing import Union
 import struct
 
 __all__ = ('idn', 'reset', 'initialize', 'configure_impedance', 'configure_output_amplifier', 'configure_trigger',
-            'create_arbitrary_waveform', 'configure_arb_waveform', 'enable_output', 'send_software_trigger', 'stop',)
+            'create_arb_wf_binary', 'configure_arb_wf', 'enable_output', 'send_software_trigger', 'stop', 'create_arb_wf',)
 
 def idn(wavegen):
     return wavegen.query("*idn?")
@@ -68,7 +68,7 @@ def configure_trigger(wavegen, channel: str='1', source: str='IMM', mode: str='E
     wavegen.write(":ARM:SENS{} {}".format(channel, mode))
     wavegen.write(":ARM:SLOP {}".format(slope))
 
-def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='ARB1'):
+def create_arb_wf_binary(wavegen, data: Union[np.array, list], name: str='ARB1'):
     """
     This program creates an arbitrary waveform within the limitations of the
     Keysight 81150A which has a limit of 2 - 524288 data points. In order to send data
@@ -82,10 +82,8 @@ def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='A
 
     args:
         wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
-        channel (str): Desired Channel to configure accepted params are [1,2]
-        source (str): Trigger source allowed args = [IMM (immediate), INT2 (internal), EXT (external), MAN (software trigger)]
-        mode (str): The type of triggering allowed args = [EDGE (edge), LEV (level)]
-        slope (str): The slope of triggering allowed args = [POS (positive), NEG (negative), EIT (either)]
+        data (ndarray or list): Data to be converted to wf
+        name (str): Name of waveform, must start with A-Z
     """  
     #will want to include error handling in this one.
     data = np.array(data)
@@ -102,23 +100,42 @@ def create_arbitrary_waveform(wavegen, data: Union[np.array, list], name: str='A
     wavegen.write(":DATA:DAC VOLATILE, #{}{}{}".format(a,b,c))
     wavegen.write(":DATA:COPY {}, VOLATILE".format(name))
 
+def create_arb_wf(wavegen, data, name='ARB1'):
+    """
+    This program creates an arbitrary waveform using the slow non binary format, see create_arbitrary_wf_binary for more info
+    Note: Will NOT save waveform in non-volatile memory, simply puts it in volatile.
+    Also for 10k points it is quite slow, allow for like 3 seconds to send the data. Will need to rewrite the binary version
+    if we want speed
+
+    args:
+        wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
+        data (ndarray or list): Data to be converted to wf
+        name (str): Name of waveform, must start with A-Z
+    """
+    data_string = ""
+    for i in range(len(data)):
+        data_string += str(data[i]) +','
+    data_string = data_string[:-1] #remove last comma
+    wavegen.write(":DATA VOLATILE, {}".format(data_string))
+
 #https://github.com/jeremyherbert/barbutils/blob/master/barbutils.py
 #upper frequnecy range is 120MHZ so do not go above that
 #maybe i can use this barb stuff to read the waveforms too...
 #finds avg max - min /2 can probably use githubn library to generate barb file then pass that
 
-def configure_arb_waveform(wavegen, channel: str='1', name='ARB1', gain: str='1.0', offset: str='0.00', freq: str='1000'):
+def configure_arb_wf(wavegen, channel: str='1', name='VOLATILE', gain: str='1.0', offset: str='0.00', freq: str='1000'):
     """
     This program configures arbitrary waveform already saved on the instrument. Taken from LabVIEW. 
     args:
         wavegen (pyvisa.resources.gpib.GPIBInstrument): Keysight 81150A
         channel (str): Desired Channel to configure accepted params are [1,2]
-        name (str): The Arbitrary Waveform name as saved on the instrument
+        name (str): The Arbitrary Waveform name as saved on the instrument, by default VOLATILE
         gain (str): The V_pp by which the waveform should be gained by
         offset (str): The voltage offset in units of volts
         freq (str): the frequency in units of Hz for the arbitrary waveform
     """
-    wavegen.write(":FUNC{}:USER {}:FUNC{} USER".format(channel, name, channel))
+    wavegen.write(":FUNC{}:USER {}".format(channel, name)) #this had an error in it
+    wavegen.write(":FUNC{} USER".format(channel)) #this was put together like ":FUNC{}:USER {}:FUNC{} USER"
     wavegen.write(":VOLT{} {}".format(channel, gain))
     wavegen.write(":FREQ{} {}".format(channel, freq))
     wavegen.write(":VOLT{}:OFFS {}".format(channel, offset))  
@@ -180,7 +197,8 @@ Helper functions:
 def scale_waveform_data(data: np.array) -> np.array:
     '''
     Scales the data between -1 and 1 then multiplies by instrument specific
-    scaling factor (8191 for ours)
+    scaling factor (8191 for ours) 
+    NOTE THIS MAY NOT ACTUALLY WORK, AS YOU CAN JUST PASS THE DATA DIRECTLY AND SHOULD BE FROM -1 TO 1
     '''
     normalized = 2*(data - np.min(data))/np.ptp(data) - 1
     return normalized * 8191
