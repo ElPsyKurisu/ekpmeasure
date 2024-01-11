@@ -6,7 +6,8 @@ from typing import Union
 import struct
 
 __all__ = ('idn', 'reset', 'initialize', 'configure_impedance', 'configure_output_amplifier', 'configure_trigger',
-            'create_arb_wf_binary', 'configure_arb_wf', 'enable_output', 'send_software_trigger', 'stop', 'create_arb_wf',)
+            'create_arb_wf_binary', 'configure_arb_wf', 'enable_output', 'send_software_trigger', 'stop', 'create_arb_wf',
+            'set_output_wf',)
 
 def idn(wavegen):
     return wavegen.query("*idn?")
