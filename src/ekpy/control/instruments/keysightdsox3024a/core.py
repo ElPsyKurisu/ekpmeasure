@@ -66,7 +66,7 @@ def configure_timebase(scope, time_base_type="MAIN", position="0.0",
     args:
         scope (pyvisa.resources.gpib.GPIBInstrument): Keysight DSOX3024a
         time_base_type (str): Allowed values are 'MAIN', 'WINDow', 'XY', and 'ROLL', note must use main for data acquisition
-        position (str): The position in the scope, [0.0] is a good default
+        position (str): The position in the scope, [0.0] is a good default This is actually the delay on the scope (moves in time right and left)
         range (str): The x range of the scope min is 2ns, max is 50s
         scale (str): The x scale of the scope in units of s/div
         vernier (boolean): Enables Vernier scale
