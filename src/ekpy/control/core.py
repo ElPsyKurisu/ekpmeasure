@@ -320,7 +320,7 @@ class experiment():
 
 			.. code-block:: python
 
-				from ekpmeasure.control import plotting
+				from ekpy.control import plotting
 				import matplotlib.pyplot as plt
 
 				def _plot(self, data, scan_params):

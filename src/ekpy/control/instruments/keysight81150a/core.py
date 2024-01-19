@@ -101,10 +101,12 @@ def create_arb_wf_binary(wavegen, data: Union[np.array, list], name: str='ARB1')
     wavegen.write(":DATA:DAC VOLATILE, #{}{}{}".format(a,b,c))
     wavegen.write(":DATA:COPY {}, VOLATILE".format(name))
 
-def create_arb_wf(wavegen, data, name='ARB1'):
+def create_arb_wf(wavegen, data, name=None):
     """
     This program creates an arbitrary waveform using the slow non binary format, see create_arbitrary_wf_binary for more info
-    Note: Will NOT save waveform in non-volatile memory, simply puts it in volatile.
+    Note: Will NOT save waveform in non-volatile memory, unless a name is given.
+    Note: Will NOT save waveform in non-volatile memory if all the user available slots are
+    filled (There are 4 allowed at 1 time plus 1 in volatile memory).
     Also for 10k points it is quite slow, allow for like 3 seconds to send the data. Will need to rewrite the binary version
     if we want speed
 
@@ -118,6 +120,10 @@ def create_arb_wf(wavegen, data, name='ARB1'):
         data_string += str(data[i]) +','
     data_string = data_string[:-1] #remove last comma
     wavegen.write(":DATA VOLATILE, {}".format(data_string))
+    if name is not None:
+        wavegen.write(":DATA:COPY {}, VOLATILE".format(name))
+
+
 
 #https://github.com/jeremyherbert/barbutils/blob/master/barbutils.py
 #upper frequnecy range is 120MHZ so do not go above that
