@@ -10,6 +10,7 @@ import os
 import pandas as pd
 from ekpy.analysis.plotting import lane_martin
 import matplotlib.pyplot as plt
+import numpy as np
 
 def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, verbose=False):
     """
@@ -43,7 +44,7 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
             try:
                 functions_list.remove(func)
             except ValueError:
-                print('Did not skip as skip_func does not exist, perhaps the spelling is wrong')
+                print(f'Did not skip as skip_func: {func} does not exist, perhaps the spelling is wrong')
     data_saver = {'data0': data,}
     funcs_modified = ['original',]
     plotted_against_list = [None, ]
@@ -62,7 +63,8 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
     data_out = Data(original_data)
 
     if verbose:
-        verbose_helper(data_saver, funcs_modified, plotted_against_list)
+        functions_list.insert(0, "Unmodified")
+        verbose_helper(data_saver, funcs_modified, plotted_against_list, functions_list)
 
     if saveall:
         if path is None:
@@ -83,9 +85,8 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
         meta_data_saver.to_ekpdat(path + '/saver.ekpdat')
         for keys in data_saver:
             data_saver[keys].to_ekpdat(path +f'\\{keys}'+'.ekpdat')
-        return data_out, data_saver
-    else:
-        return data_out, None
+    return data_out, data_saver
+
     
 
 
@@ -116,7 +117,7 @@ def get_function_doc_append(doc_string):
     return func_name_appended, plotted_against
     
 
-def verbose_helper(data_saver, funcs_modified, plotted_against):
+def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list):
     """
     Helper Function that takes in a dictionary of ekpds.Data and a list of functions that were modified and plots each one in accordance to
     specificaions
@@ -125,12 +126,13 @@ def verbose_helper(data_saver, funcs_modified, plotted_against):
         data_saver (dict): A dictionary of each intermediate step in the process
         funcs_modified (list): A list of what was modified each time in the process
         plotted_against (str): The key of what we want to plot everything against (the x axis)
+        functions_list (list): List of the names of the functions applied to be used in the titles
     Returns:
         None
     """
-    scatter = False
     data_saver_list = list(data_saver.keys())
     for i, name in enumerate(data_saver_list):
+        scatter = False
         data = data_saver[name] #we get the data starting with data0 the original data
         func_modified = funcs_modified[i]
         if func_modified == 'original':
@@ -159,7 +161,7 @@ def verbose_helper(data_saver, funcs_modified, plotted_against):
         if scatter:
             ax.scatter(x=x_scatter, y=y_scatter)
 
-        ax.set_title(f'Function Applied: {funcs_modified[i]}')
+        ax.set_title(f'Function Applied: {functions_list[i]}')
         ax.set_xlabel(plot_against)
         ax.set_ylabel(func_modified)
         data.plot(x=plot_against, y=func_modified, ax=ax, labelby='trial')
