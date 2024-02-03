@@ -959,7 +959,7 @@ class Data():
 		with open(file, 'wb') as f:
 			pickle.dump(self._dict, f)
 
-	def _get_indices_satisfying_definition_condtion(self, condition):
+	def _get_indices_satisfying_definition_condition(self, condition):
 		"""need docstring"""
 		for key in condition:
 			if not hasattr(condition[key], '__iter__'):
@@ -1027,7 +1027,7 @@ class Data():
 		assert hasattr(data_condition_function_dict[data_function_key], '__call__'), "value associated with key '{}' in data_condition_function_dict is a not a function. is type {}".format(data_condition_function_dict, type(data_condition_function_dict[data_function_key]))
 		assert data_function_key in set(self._dict[0]['data'].keys()), "data_function_key '{}' not in data. available keys are {}".format(data_function_key, set(self[0]['data'].keys()))
 
-		sat_indices = self._get_indices_satisfying_definition_condtion(definition_condition_dict)
+		sat_indices = self._get_indices_satisfying_definition_condition(definition_condition_dict)
 		if definition_condition_dict == {}:
 			sat_indices = set(self._dict.keys())
 		all_index = set(self._dict.keys())
@@ -1077,7 +1077,7 @@ class Data():
 
 
 		"""
-		indices = self._get_indices_satisfying_definition_condtion(condition)
+		indices = self._get_indices_satisfying_definition_condition(condition)
 
 		#we will append the index to indices everytime the logical or statement for the specific condition holds
 		#to check the logical and statement over various keys, we need to ensure that for each key we did indeed append the index to indices:
