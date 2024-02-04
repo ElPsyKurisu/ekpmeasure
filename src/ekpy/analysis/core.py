@@ -1167,10 +1167,10 @@ class Data():
 
 	def apply(self, func:'callable', pass_defn:'bool'=False, pass_trials_iteratively:'bool'=True,
 		ignore_errors:'bool'=True, ignore_coerce_warnings:'bool'=True, **kwargs):
-		"""Apply data_function to the data in each index. ``**kwargs`` will be passed to data_function. If function_on_data returns 'None', that piece of data will be dropped. 
+		"""Apply data_function to the data in each index. ``**kwargs`` will be passed to data_function. If func returns 'None', that piece of data will be dropped. 
 
 		args:
-			function_on_data (function): f(dict) -> dict. Function is passed the data_dict for each index.
+			func (function): f(dict) -> dict. Function is passed the data_dict for each index. If returns None apply returns None
 			pass_defn (bool): Whether or not to pass the definition to function_on_data. If True, will be passed with other kwargs. 
 			pass_trials_iteratively (bool): True for functions which operate on a single trial. False for functions which operate across trials. (Only used for grouped data)
 			ignore_errors (bool): If True, errors in function_on_data will be printed, but not raised. Resulting data will be original data. If False, errors will be raised.
@@ -1255,7 +1255,7 @@ class Data():
 		"""
 		_dict_out = {}
 		new_key = 0
-		
+		func_is_nonetype = False
 		for index in self:
 			try:
 				data_dict = self.iloc[index].data
@@ -1279,6 +1279,10 @@ class Data():
 							_func_out = func(_dict, **to_pass)
 						else:
 							_func_out = func(_dict, **kwargs)
+						if _func_out is None:
+							#here need to ensure that if _func_out returns none we skip it
+							func_is_nonetype = True
+							continue
 						for key in _func_out:
 							try:
 								dabs[key].append(_func_out[key])
@@ -1316,8 +1320,11 @@ class Data():
 				else:
 					raise e
 
-			
-		return Data(_dict_out)
+		if func_is_nonetype:
+			return None
+		else:
+			return Data(_dict_out)
+
 
 	def to_dict(self):
 		"""
