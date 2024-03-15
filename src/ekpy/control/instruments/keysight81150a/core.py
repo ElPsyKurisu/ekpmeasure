@@ -177,7 +177,7 @@ def stop(wavegen):
     enable_output(wavegen, '1', False)
     enable_output(wavegen, '2', False)
 
-def set_output_wf(wavegen, channel: str='1', func='SIN', freq='1e3', duty_cycle='50'):
+def set_output_wf(wavegen, channel: str='1', func='SIN', freq='1e3', offset='0', duty_cycle='50', num_cycles=None):
     """
     Decides what built-in wf to send - by default sin
 
@@ -186,11 +186,18 @@ def set_output_wf(wavegen, channel: str='1', func='SIN', freq='1e3', duty_cycle=
         channel (str): Desired Channel to configure accepted params are [1,2]
         func (str): Desired output function, allowed args are [SIN (sine), SQU (square), RAMP, PULSe, NOISe, DC, USER (arb)]
         freq (str): frequency in Hz (have not added suffix funcitonaility yet)
+        offset (str): DC offset for waveform
         duty_cycle (str): duty_cycle defined as 100* pulse_width / Period ranges from 0-100, (cant actually do 0 or 100 but in between is fine)
+        num_cycles (str): number of cycles by default set to None which means continous
 
     """
     wavegen.write(":SOUR:FUNC{}:{}".format(channel, func))
     wavegen.write(":SOUR:FREQ{} {}".format(channel, freq))
+    wavegen.write(":VOLT{}:OFFS {}".format(channel, offset)) #should work but havent tested
+    if func.lower() == 'squ' or func.lower() == 'square':
+        wavegen.write(":SOUR:FUNC{}:DCYC {}".format(channel, duty_cycle)) #havent tested
+    if num_cycles is not None:
+        wavegen.write(":NCYCles{}".format(num_cycles))
     if func.lower() == 'pulse' or func.lower() == 'puls':
         wavegen.write(":SOUR:FUNC{}:PULS:DCYC {}PCT".format(channel, duty_cycle))
 
