@@ -7,7 +7,7 @@ import struct
 
 __all__ = ('idn', 'reset', 'initialize', 'configure_impedance', 'configure_output_amplifier', 'configure_trigger',
             'create_arb_wf_binary', 'configure_arb_wf', 'enable_output', 'send_software_trigger', 'stop', 'create_arb_wf',
-            'set_output_wf',)
+            'set_output_wf', 'couple_channels',)
 
 def idn(wavegen):
     return wavegen.query("*idn?")
@@ -204,7 +204,16 @@ def set_output_wf(wavegen, channel: str='1', func='SIN', freq='1e3', voltage='1'
         wavegen.write(":SOUR:FUNC{}:PULS:DCYC {}PCT".format(channel, duty_cycle))
 
     
+def couple_channels(wavegen):
+    """
+    Couples the channel params so Channel 1 and 2 are identical, not sure how well the outputs will sync. 
+    Convention is to make changes to channel 1 now that will affect channel 2
 
+    args:
+       	wavegen (pyvisa.resources.ENET-Serial INSTR): Keysight 81150A
+           
+    """
+    wavegen.write(":TRACK:CHAN1 ON")
 
 '''
 Helper functions:
