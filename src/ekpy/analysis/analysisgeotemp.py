@@ -12,13 +12,15 @@ from ekpy.analysis.plotting import lane_martin
 import matplotlib.pyplot as plt
 import numpy as np
 
-def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, verbose=False):
+def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, verbose=False, dont_pass_defn=False):
     """
     Reads correctly formatted analysis file and performs all functions in sequential order and returns the final mutated Data. Only want it to return the final
     mutated data alongside the original unless saveall=True
 
     So because of overriding cases where a func overrides something by say data_dict['voltage'] = new_voltage but data_dict['voltage'] already existed we
     have data saver to save the day!
+
+    Adding functionality to pass meta_data
 
     Args:
         module (str): the name of the analysis file which must be in the same directory.
@@ -28,6 +30,7 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
         skip_func (str or list of str): The name of the functions to list, if skip_func is not defined in the analysis file it is simply not skipped and
         a warning appears
         verbose (Boolean): If set to true attempts to plot each step of the data analysis pathway
+        dont_pass_defn (Boolean): Functions that do not use kwargs or defintion can pass this so you dont need to add kwargs (for legacy reasons)
 
     Returns:
         data (ekpy.data): The modified data.
@@ -50,12 +53,18 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
     plotted_against_list = [None, ]
     for i, name in enumerate(functions_list):
         func = getattr(module, name)
+        if dont_pass_defn:
+            check_if_func_nonetype = data.apply(func, pass_defn=False)
+        else:
+            check_if_func_nonetype = data.apply(func, pass_defn=True)
+        if check_if_func_nonetype is None:
+            continue
         func_doc_str = getdoc(func)
         func_appended, plotted_against = get_function_doc_append(func_doc_str)
         funcs_modified.append(func_appended)
         plotted_against_list.append(plotted_against)
         key_name = f"data{i + 1}"
-        data_saver[key_name] = data.apply(func)
+        data_saver[key_name] = check_if_func_nonetype
         data = data_saver[key_name]
     original_data = data_saver['data0'].to_dict()
     last_data_added = data[data.data_keys[-1]]
