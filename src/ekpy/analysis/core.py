@@ -1325,7 +1325,6 @@ class Data():
 		else:
 			return Data(_dict_out)
 
-
 	def to_dict(self):
 		"""
 		Return a dict of the Data class.  
@@ -1505,8 +1504,8 @@ class Data():
 			else:
 				data_keys_to_plot = set(np.array([y]).flatten())
 
-
 			for plotkey in data_keys_to_plot:
+
 				to_plot = self._dict[index]['data'][plotkey]
 
 				if len(to_plot.shape) == 1: #1d data
@@ -1543,7 +1542,7 @@ class Data():
 		args:
 			x (key): data dict key for x axis.
 			y (key or array-like): data dict key for y axis
-			subset (array-like): a subset of items to plot e.g. [4:10], plots only those items
+			subset (1d array or dict): a subset of items to plot e.g. np.array([1,2,9,31]), plots only those items. Note dict of arrays is needed if per data index u have different subsets 
 			ax (matplotlib.axis): axis to plot on 
 			color (str): Color of plot. (Override colormap)
 			cmap (str): Color map. See matplotlib.cm.cmaps_listed for allowed colormaps.
@@ -1584,7 +1583,6 @@ class Data():
 			else:
 				data_keys_to_plot = set(np.array([y]).flatten())
 
-
 			for plotkey in data_keys_to_plot:
 				to_plot = self._dict[index]['data'][plotkey]
 				if subset is None:
@@ -1607,11 +1605,19 @@ class Data():
 							else:
 								ax.scatter(xs[i,:], to_plot[i,:], color = color, **kwargs)
 				else:
+					if type(subset) is not dict: #checks if 1d array case
+						if len(to_plot.shape) == 1: #1d data
+							if x == None:
+								ax.scatter(to_plot[subset], color = color, label = label, **kwargs)
+							else:
+								ax.scatter(xs[subset], to_plot[subset], color = color, label = label, **kwargs)
+							continue
+
 					if len(to_plot.shape) == 1: #1d data
 						if x == None:
-							ax.scatter(to_plot[subset], color = color, label = label, **kwargs)
+							ax.scatter(to_plot[subset[index]], color = color, label = label, **kwargs)
 						else:
-							ax.scatter(xs[subset], to_plot[subset], color = color, label = label, **kwargs)
+							ax.scatter(xs[subset[index]], to_plot[subset[index]], color = color, label = label, **kwargs)
 						continue
 
 					for i in range(to_plot.shape[0]):
