@@ -51,6 +51,7 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
     data_saver = {'data0': data,}
     funcs_modified = ['original',]
     plotted_against_list = [None, ]
+    skip_plot_list = [False, ]
     for i, name in enumerate(functions_list):
         func = getattr(module, name)
         if dont_pass_defn:
@@ -60,8 +61,9 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
         if check_if_func_nonetype is None:
             continue
         func_doc_str = getdoc(func)
-        func_appended, plotted_against = get_function_doc_append(func_doc_str)
+        func_appended, plotted_against, skip_plot = get_function_doc_append(func_doc_str)
         funcs_modified.append(func_appended)
+        skip_plot_list.append(skip_plot)
         plotted_against_list.append(plotted_against)
         key_name = f"data{i + 1}"
         data_saver[key_name] = check_if_func_nonetype
@@ -73,7 +75,7 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
 
     if verbose:
         functions_list.insert(0, "Unmodified")
-        verbose_helper(data_saver, funcs_modified, plotted_against_list, functions_list)
+        verbose_helper(data_saver, funcs_modified, plotted_against_list, functions_list, skip_plot_list)
 
     if saveall:
         if path is None:
@@ -104,17 +106,18 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
 def get_function_doc_append(doc_string):
     """
     Helper function which takes in an appropiately formatted string and scans it for the appended value. See use_analysis_file for more
-    information
+    information. Note will error if it doesnt end with MODIFIES: func_name'' ' 
 
     Args:
         doc_string (str): The given doc_string to scan
     Returns:
         func_name_appended (str): The name of the function that was modified by the function
         plotted_against (str): The key that should be plotted against whatever was modified here, Returns None if not found
+        skip_plot (boolean): Optional Flag that will suppress warnings if you have a function that doesn't need to show a plotting step
     """
     if doc_string.find("MODIFIES:") != -1:
-        ending_index_of_match = doc_string.find("MODIFIES:") + len("MODIFIES:")
-        func_name_appended = doc_string[ending_index_of_match:].strip()
+        func_name_start = doc_string.find("MODIFIES:") + len("MODIFIES:")
+        func_name_appended = doc_string[func_name_start:].strip() 
     else:
         func_name_appended = None
     if doc_string.find("PLOT_AGAINST:") != -1:
@@ -123,10 +126,15 @@ def get_function_doc_append(doc_string):
         plotted_against = doc_string[plotted_against_start:plotted_against_start+plotted_against_end].strip()
     else:
         plotted_against = None
-    return func_name_appended, plotted_against
+    if doc_string.find("SKIP_PLOT") != -1:
+        skip_plot = True
+    else:
+        skip_plot = False
+
+    return func_name_appended, plotted_against, skip_plot
     
 
-def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list):
+def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list, skip_plot_list):
     """
     Helper Function that takes in a dictionary of ekpds.Data and a list of functions that were modified and plots each one in accordance to
     specificaions
@@ -150,18 +158,24 @@ def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list):
         if plot_against is None:
             plot_against = data.data_keys[0] #plots first element
 
+        if skip_plot_list[i]:
+            continue
+
         if plot_against is None and func_modified is None:
             #this represents a function that doesnt change any data like a plotting function perhaps
             print(f'Skipped {name} since either the doc_string is incomplete or it returns nothing')
-            pass #go bast this one in the list
-
+            continue #go past this one in the list changed from pass
+        
         #check to make sure that the plot_against is the same length as func_modifed
         if len(data[func_modified]) != len(data[plot_against]):
             indices = np.array(data[func_modified])
             plot_against = data.data_keys[0]
             func_modified = data.data_keys[1]
-            x_scatter = data[plot_against][indices] #this assumes that func_modified is a list of integers
-            y_scatter = data[func_modified][indices]
+            try:
+                x_scatter = data[plot_against][indices] #this assumes that func_modified is a list of integers
+                y_scatter = data[func_modified][indices]
+            except IndexError as e:
+                print("Warning skipping plotting of {} due to Index Error, please add SKIP_PLOT to doc_str in analysisfile".format(func_modified))
             scatter = True
 
         #Setup plt ax and style
