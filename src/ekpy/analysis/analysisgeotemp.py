@@ -20,11 +20,11 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
     So because of overriding cases where a func overrides something by say data_dict['voltage'] = new_voltage but data_dict['voltage'] already existed we
     have data saver to save the day!
 
-    Adding functionality to pass meta_data
+    Adding functionality to accept data or dataset (so can do multiple runs)
 
     Args:
         module (str): the name of the analysis file which must be in the same directory.
-        data (ekpy.data): The data to use the analysis file on.
+        data (ekpy.data or ekpy.dataset): The data to use the analysis file on. if dataset then it modifies all of them
         saveall (Boolean): If set to true it saves each intermediate step to a file
         path (str): if savell is true you must set a path where to save the intermediate steps. Usually the path where you pulled the dset from.
         skip_func (str or list of str): The name of the functions to list, if skip_func is not defined in the analysis file it is simply not skipped and
@@ -33,7 +33,7 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
         dont_pass_defn (Boolean): Functions that do not use kwargs or defintion can pass this so you dont need to add kwargs (for legacy reasons)
 
     Returns:
-        data (ekpy.data): The modified data.
+        data (ekpy.data or ekpy.dataset): The modified data or dataset.
         data_saver (dict): A Dictionary containing all the intermediate steps of the data. (optional)
     """
     module = import_module(module)
@@ -48,6 +48,9 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
                 functions_list.remove(func)
             except ValueError:
                 print(f'Did not skip as skip_func: {func} does not exist, perhaps the spelling is wrong')
+    #add functionaility to allow for datasets
+    if type(data) is Dataset:
+        data = data.get_data()
     data_saver = {'data0': data,}
     funcs_modified = ['original',]
     plotted_against_list = [None, ]
@@ -70,7 +73,11 @@ def use_analysis_file(module, data, saveall=False, path=None, skip_func=None, ve
         data = data_saver[key_name]
     original_data = data_saver['data0'].to_dict()
     last_data_added = data[data.data_keys[-1]]
-    original_data[0]['data'][data.data_keys[-1]] = last_data_added
+    if type(last_data_added) is dict:
+        for key in original_data.keys():
+            original_data[key]['data'][data.data_keys[-1]] = last_data_added[key]
+    else:
+        original_data[0]['data'][data.data_keys[-1]] = last_data_added 
     data_out = Data(original_data)
 
     if verbose:
@@ -167,27 +174,28 @@ def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list, 
             continue #go past this one in the list changed from pass
         
         #check to make sure that the plot_against is the same length as func_modifed
-        if len(data[func_modified]) != len(data[plot_against]):
-            indices = np.array(data[func_modified])
-            plot_against = data.data_keys[0]
-            func_modified = data.data_keys[1]
-            try:
-                x_scatter = data[plot_against][indices] #this assumes that func_modified is a list of integers
-                y_scatter = data[func_modified][indices]
-            except IndexError as e:
-                print("Warning skipping plotting of {} due to Index Error, please add SKIP_PLOT to doc_str in analysisfile".format(func_modified))
-            scatter = True
+        if type(data[plot_against]) is dict:
+            if len(data[func_modified][0]) != len(data[plot_against][0]): #check if first element of dictionary (which refers to each trial?) doesnt work note type should be array
+                indices = data[func_modified] #I need 2d array here
+                plot_against = data.data_keys[0]
+                func_modified = data.data_keys[1]
+                scatter = True
+        else:
+            if len(data[func_modified]) != len(data[plot_against]):
+                indices = np.array([data[func_modified]]) #this is numpy array for 1d case need to make 2d?
+                plot_against = data.data_keys[0]
+                func_modified = data.data_keys[1]
+                scatter = True
 
         #Setup plt ax and style
         plt.style.use(lane_martin)
         fig, ax = plt.subplots()
-        if scatter:
-            ax.scatter(x=x_scatter, y=y_scatter)
-
         ax.set_title(f'Function Applied: {functions_list[i]}')
         ax.set_xlabel(plot_against)
         ax.set_ylabel(func_modified)
         data.plot(x=plot_against, y=func_modified, ax=ax, labelby='trial')
+        if scatter:
+            data.scatter(x=plot_against, y=func_modified, subset=indices, ax=ax)
 
 
     
