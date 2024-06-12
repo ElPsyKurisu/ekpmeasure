@@ -282,15 +282,15 @@ def setup_wf(scope, source: str='CHAN1', byte_order: str='MSBF', format: str='by
         source (str): Desired channel allowed values are [CHAN1, CHAN2, CHAN3, CHAN4, FUNC, SBUS1, etc]
         byte_order (str): Either MSBF (most significant byte first) or LSBF (least significant byte first)
         format (str): Format of data allowed args are [ASCii (floating point), WORD (16bit two-bytes), BYTE (8-bit)]
-        points (str): Number of data points for the waveform to return allowed args are [100,250,500,1000]
+        points (str): Number of data points for the waveform to return allowed args are [100,250,500,1000] for NORM or up to [8000000] for MAX or RAW
         points_mode (str): Mode for points allowed args are [NORM (normal), MAX (maximum), RAW]
         unsigned (str): Allows to switch between unsigned and signed integers [OFF (signed), ON (unsigned)]
     """ 
     scope.write(":WAVeform:SOURce {}".format(source))
     scope.write(":WAVeform:BYTeorder {}".format(byte_order))
     scope.write(":WAVeform:FORMat {}".format(format))
-    scope.write(":WAVeform:POINts {}".format(points))
     scope.write(":WAVeform:POINts:MODE {}".format(points_mode))
+    scope.write(":WAVeform:POINts {}".format(points))
     scope.write(":WAVeform:UNSigned {}".format(unsigned))
 
 
