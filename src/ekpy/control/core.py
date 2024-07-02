@@ -10,7 +10,8 @@ from IPython import display
 from .misc import get_save_name
 from ..utils import write_ekpy_data
 from ..utils.save import _create_target_dir
-
+from ekpy.analysis.analysisgeotemp import use_analysis_file as uaf
+from ekpy import analysis
 __all__ = ('trial','experiment')
 
 class experiment():
@@ -339,7 +340,7 @@ class experiment():
 		raise NotImplementedError('_plot() should be overridden in experiment subclass. It is not.')
 
 
-	def n_param_scan(self, kw_scan_params, fixed_params, scan_param_order, ntrials=1, print_progress=True, plot=False):
+	def n_param_scan(self, kw_scan_params, fixed_params, scan_param_order, ntrials=1, print_progress=True, plot=False, use_analysis_file=False):
 		"""Perform a measurement over a set of params and save the data/meta data. 
 
 		args:
@@ -348,6 +349,7 @@ class experiment():
 			scan_param_order (array-like): Order of scan parameters. 
 			ntrials (int): Number of trials to perform.
 			plot (bool): Plot as data is collected.
+			use_analysis_file (bool): Uses properly formatted analysis file to analyze data and plots that, by default does not show steps
 
 
 		Examples:
@@ -425,6 +427,9 @@ class experiment():
 					trial_df = trial(self.run_function, kwargs, self.path, return_df=True)
 					if plot:
 						self._plot(trial_df, kwargs)
+					if use_analysis_file:
+						dset = analysis.load_Dataset(self.path)
+						uaf('analysisfile', dset)
 					else:
 						display.clear_output(wait = True)
 					time.sleep(1)
