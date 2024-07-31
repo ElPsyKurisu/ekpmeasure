@@ -163,7 +163,7 @@ def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list, 
             func_modified = data.data_keys[1]
         plot_against = plotted_against[i]
         if plot_against is None:
-            plot_against = data.data_keys[0] #plots first element
+            plot_against = data.data_keys[0] #plots first element 
 
         if skip_plot_list[i]:
             continue
@@ -193,9 +193,12 @@ def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list, 
         ax.set_title(f'Function Applied: {functions_list[i]}')
         ax.set_xlabel(plot_against)
         ax.set_ylabel(func_modified)
-        data.plot(x=plot_against, y=func_modified, ax=ax, labelby='trial')
-        if scatter:
-            data.scatter(x=plot_against, y=func_modified, subset=indices, ax=ax)
+        try:
+            data.plot(x=plot_against, y=func_modified, ax=ax, labelby='trial')
+            if scatter:
+                data.scatter(x=plot_against, y=func_modified, subset=indices, ax=ax)
+        except ValueError:
+            print("{} has a different len than {}. Please ensure this is intended behavior}".format(func_modified, plot_against))
 
 
     
