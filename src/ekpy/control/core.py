@@ -425,11 +425,12 @@ class experiment():
 					print('Scan {} of {}. {}'.format(iteration, total_scans, current_scan_params))
 					
 					trial_df = trial(self.run_function, kwargs, self.path, return_df=True)
+					print(trial_df)
+					#if use_analysis_file:
+						#dset = analysis.load_Dataset(self.path) IDEALLY WE MAKE IT DO IT HERE FOR ALL OF THEM AKA PER TRIAL
+						#uaf('analysisfile', dset, dont_pass_defn=True)
 					if plot:
 						self._plot(trial_df, kwargs)
-					if use_analysis_file:
-						dset = analysis.load_Dataset(self.path)
-						uaf('analysisfile', dset)
 					else:
 						display.clear_output(wait = True)
 					time.sleep(1)
@@ -441,6 +442,10 @@ class experiment():
 			raise e
 		finally:
 			self.terminate()
+			if use_analysis_file: #this will do it on everything
+				dset = analysis.load_Dataset(self.path)
+				data2= dset.select_index(-1).get_data() #added so it onnly does the analysis on the final element otherwise does entire dataset in path which can be hundreds of files
+				uaf('analysisfile', data2, dont_pass_defn=True) #need this here since my files dont have **kwargs added to in the analysis file, once everything is updated ill remove this
 			print('done.')
 		
 

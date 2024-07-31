@@ -199,6 +199,8 @@ def verbose_helper(data_saver, funcs_modified, plotted_against, functions_list, 
                 data.scatter(x=plot_against, y=func_modified, subset=indices, ax=ax)
         except ValueError:
             print("{} has a different len than {}. Please ensure this is intended behavior}".format(func_modified, plot_against))
+        except IndexError:
+            print("{} was skipped. Ensure this was not meant to be plotted".format(func_modified))
 
 
     
