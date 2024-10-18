@@ -7,7 +7,6 @@ import warnings
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from functools import wraps
-from numpy import AxisError
 import pickle
 from pprint import pformat
 from .data_funcs import iterable_data_dict, data_array_builder
